@@ -1,3 +1,13 @@
+"""
+This is the solution for the COMP 437:
+    -> Create a solution to implement steganography and cryptography in your own language of choice.
+
+@author: KEVIN OMONDI OWIDI
+@student id: S13/03168/18
+@date: September 30/2022
+"""
+
+# Importing relevant libraries
 import math
 import tkinter as tk
 from tkinter import ttk, WORD
@@ -7,6 +17,9 @@ from tkinter import filedialog
 import numpy as np
 import cv2
 
+# global variables
+SHIFT = 3
+
 
 # Custom font
 def set_font(size=14, weight="normal"):
@@ -15,11 +28,87 @@ def set_font(size=14, weight="normal"):
                 weight=weight)
 
 
+# cipher message
+def cipher(message) -> str:
+    """
+    This function converts plain text into cipher text using Ceaser cipher
+    :param message: The plain text to be ciphered
+    :return: A string of cipher text
+    """
+    shift = SHIFT
+
+    cipher_text = ""
+
+    for letter in message:
+        if letter.isupper():
+            letter_index = ord(letter) - ord("A")
+            # Positive shift
+            new_index = (letter_index + shift) % 26
+            new_unicode = new_index + ord("A")
+            new_character = chr(new_unicode)
+            cipher_text = cipher_text + new_character
+        elif letter.islower():
+            letter_index = ord(letter) - ord("a")
+            # Positive shift
+            new_index = (letter_index + shift) % 26
+            new_unicode = new_index + ord("a")
+            new_character = chr(new_unicode)
+            cipher_text = cipher_text + new_character
+        else:
+            # This preserves non-alphabetic character for readability
+            cipher_text += letter
+
+    return cipher_text
+
+
+# decipher
+def decipher(message) -> str:
+    """
+    This function deciphers the cipher text passed in as message parameter
+    :param message: Cipher text to be deciphered
+    :return: A string of plain text deciphered
+    """
+    shift = SHIFT
+
+    plain_text = ""
+    # Loop through every character in the text and convert it as per shift
+    for letter in message:
+
+        if letter.isupper():
+            letter_index = ord(letter) - ord("A")
+
+            # Negative shift
+            new_index = (letter_index - shift) % 26
+            new_unicode = new_index + ord("A")
+            new_character = chr(new_unicode)
+            plain_text = plain_text + new_character
+        #     Since ASCII ranges with letter cases, check for lower case letters and convert appropriately
+        elif letter.islower():
+            letter_index = ord(letter) - ord("a")
+
+            # Negative shift
+            new_index = (letter_index - shift) % 26
+            new_unicode = new_index + ord("a")
+            new_character = chr(new_unicode)
+            plain_text = plain_text + new_character
+        else:
+            # This preserves non-alphabetic character for readability
+            plain_text += letter
+
+    return plain_text
+
+
 # Container canvas
+
 class App(tk.Tk):
+    """
+    This is class that encapsulates the app.
+    It defines basic properties such as window size, title and frames that for other subframe screens
+    """
+
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-        self.title("Stenography App")
+        self.title("Steganography App")
         self.geometry('600x600')
         container = tk.Frame(self, height=600, width=500)
         container.pack(side="top", fill="both", expand=True)
@@ -37,12 +126,24 @@ class App(tk.Tk):
 
         self.show_frame(MainPage)
 
-    def show_frame(self, cont):
-        frame = self.frames[cont]
+    """
+    This function helps navigate different frames/screens
+    """
+
+    def show_frame(self, index):
+        frame = self.frames[index]
         frame.tkraise()
 
 
 class MainPage(tk.Frame):
+    """
+    Encapsulates widgets in the home/landing screen.
+    It has the following widgets:
+        Page header -> Informs the user on what action to take
+        Do encrypt button: Load encryption screen
+        Do decrypt button: Load decryption screen
+    """
+
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Choose to encrypt or decrypt", font=set_font(size=18, weight="bold"))
@@ -54,7 +155,7 @@ class MainPage(tk.Frame):
             text="Do Encrypt",
             command=lambda: controller.show_frame(EncryptPage),
             justify="center",
-            bg="green",
+            bg="grey",
             fg="white"
         )
         encrypt_button.pack(fill="both", expand=True, padx=10, pady=10)
@@ -63,13 +164,24 @@ class MainPage(tk.Frame):
             self,
             text="Do Decrypt",
             command=lambda: controller.show_frame(DecryptPage),
-            bg="red",
+            bg="black",
             fg="white"
         )
         decrypt_button.pack(fill="both", expand=True, padx=10, pady=10)
 
 
 class EncryptPage(tk.Frame):
+    """
+        Encapsulates widgets in the Encryption screen.
+        It has the following widgets:
+            Page header -> Informs user on what to do
+            Pick image button-> Select an image to use for encryption
+            Image Frame -> Inserts image selected into the screen
+            Message box -> Captures the text to be encrypted
+            Encrypt button -> Button to confirm encryption
+            Hidden label -> The label pops to confirm encryption successful
+            Back button -> Returns to the home page
+        """
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -81,7 +193,7 @@ class EncryptPage(tk.Frame):
         pick_image = tk.Button(
             self,
             text="Pick Image",
-            command=self.on_click,
+            command=self.pick_image,
             justify="center",
             bg="black",
             fg="white"
@@ -95,8 +207,8 @@ class EncryptPage(tk.Frame):
         # Message label
         tk.Label(self, text="Message").pack(padx=10)
         # Text input to be encrypted
-        self.message = tk.Text(self, wrap=WORD, height=5)
-        self.message.pack(fill=tk.X, padx=10, pady=10, ipady=5, ipadx=5)
+        self.message_input_box = tk.Text(self, wrap=WORD, height=5)
+        self.message_input_box.pack(fill=tk.X, padx=10, pady=10, ipady=5, ipadx=5)
 
         # Button to confirm encryption
         encrypt_confirm = tk.Button(
@@ -119,7 +231,7 @@ class EncryptPage(tk.Frame):
         switch_window_button.pack(padx=10, pady=10, ipady=5, ipadx=5, side="right")
 
     # Handle button action
-    def on_click(self):
+    def pick_image(self):
         image_display_size = 300, 300
         self.path_image = filedialog.askopenfilename()
         load_image = Image.open(self.path_image)
@@ -135,7 +247,13 @@ class EncryptPage(tk.Frame):
 
     # DO encrypt the image
     def encrypt(self):
-        data = self.message.get(1.0, "end-1c")
+        data = self.message_input_box.get(1.0, "end-1c")
+        print(f"The plain text entered is {data}")
+
+        # Encrypt the message input using ceaser cipher
+        data = cipher(data)
+        print(f"The cipher text converted is {data}")
+
         # load the image
         img = cv2.imread(self.path_image)
         # break the image into its character level. Represent the characters in ASCII.
@@ -177,8 +295,20 @@ class EncryptPage(tk.Frame):
 
 
 class DecryptPage(tk.Frame):
+    """
+    Encapsulates widgets in the Decryption screen.
+    It has the following widgets:
+        Page header -> Informs user on what to do
+        Pick image button-> Select an encrypted image to decrypt
+        Image Frame -> Inserts image selected into the screen
+        Message box -> Displays the text to be decrypted
+        Decrypt button -> Button to confirm decryption
+        Back button -> Returns to the home page
+    """
+
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        self.message = None
         self.message_box = None
         self.decrypted_message = None
         self.img = None
@@ -187,7 +317,6 @@ class DecryptPage(tk.Frame):
         self.load_image = None
         self.path_image = None
         self.image_display_size = None
-        self.message = ""
         label = tk.Label(self, text="Pick encrypted image to decrypt", font=set_font(size=18, weight="bold"))
         label.pack(padx=10, pady=10)
 
@@ -272,17 +401,25 @@ class DecryptPage(tk.Frame):
         self.message = [chr(int(''.join(i), 2)) for i in self.message]
         self.decrypted_message = ''.join(self.message)
 
-        self.message_box = tk.Label(self.message_frame, text=self.decrypted_message, bg="white",
+        print(f"The cipher message is: {self.decrypted_message}")
+        # Decrypt the ceaser cipher text
+
+        plain_message = decipher(self.decrypted_message)
+        print(f"The plain message is: {plain_message}")
+
+        # Display the plain text
+        self.message_box = tk.Label(self.message_frame, text=plain_message, bg="white",
                                     font=set_font(10, "normal"), height=5, wraplength=500)
         # To be packed inside frame when decrypt btn is pressed
         self.message_box.pack(fill=tk.X, padx=10, pady=10, ipady=5, ipadx=5)
-        print(f"The message is: {self.decrypted_message}")
 
 
+# Function for basic initiations
 def main():
     app = App()
     app.mainloop()
 
 
+# This is where the program begins
 if __name__ == '__main__':
     main()
